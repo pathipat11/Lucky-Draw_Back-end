@@ -17,7 +17,7 @@ func (ctl *Controller) Create(ctx *gin.Context) {
 		return
 	}
 
-	_, mserr, err := ctl.Service.Create(ctx, body)
+	data, mserr, err := ctl.Service.Create(ctx, body)
 	if err != nil {
 		ms := "internal server error"
 		if mserr {
@@ -28,7 +28,11 @@ func (ctl *Controller) Create(ctx *gin.Context) {
 		return
 	}
 
-	response.Success(ctx, nil)
+	// response.Success(ctx, nil)
+	response.Success(ctx, gin.H{
+		"id": data.ID,
+	})
+
 }
 
 func (ctl *Controller) Update(ctx *gin.Context) {
