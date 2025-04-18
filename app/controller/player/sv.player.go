@@ -6,8 +6,10 @@ import (
 	"app/app/response"
 	"app/internal/logger"
 	"context"
+	"encoding/csv"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -78,7 +80,9 @@ func (s *Service) List(ctx context.Context, req request.ListPlayer) ([]response.
 	query := s.db.NewSelect().
 		TableExpr("players AS p").
 		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.member_id", "p.position", "p.room_id", "p.is_active").
-		Where("deleted_at IS NULL")
+		ColumnExpr("r.name AS room_name").
+		Join("LEFT JOIN rooms AS r ON r.id = p.room_id::uuid").
+		Where("p.deleted_at IS NULL")
 
 	if req.Search != "" {
 		search := fmt.Sprintf("%" + strings.ToLower(req.Search) + "%")
@@ -109,9 +113,12 @@ func (s *Service) Get(ctx context.Context, id request.GetByIDPlayer) (*response.
 	err := s.db.NewSelect().
 		TableExpr("players AS p").
 		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.member_id", "p.position", "p.room_id", "p.is_active").
-		Where("id = ?", id.ID).
-		Where("deleted_at IS NULL").
+		ColumnExpr("r.name AS room_name").
+		Join("LEFT JOIN rooms AS r ON r.id = p.room_id").
+		Where("p.id = ?", id.ID).
+		Where("p.deleted_at IS NULL").
 		Scan(ctx, &m)
+
 	return &m, err
 }
 
@@ -128,4 +135,45 @@ func (s *Service) Delete(ctx context.Context, id request.GetByIDPlayer) error {
 	// data, err := s.db.NewDelete().Table("room").Where("id = ?", id.ID).Exec(ctx)
 	_, err = s.db.NewDelete().Model((*model.Player)(nil)).Where("id = ?", id.ID).Exec(ctx)
 	return err
+}
+
+// new function
+func (s *Service) ImportPlayersFromCSV(ctx context.Context, file io.Reader, roomID string) error {
+	reader := csv.NewReader(file)
+	_, err := reader.Read() // skip header
+	if err != nil {
+		return err
+	}
+
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		if len(record) < 5 {
+			continue
+		}
+
+		player := &model.Player{
+			Prefix:    strings.TrimSpace(record[0]),
+			FirstName: strings.TrimSpace(record[1]),
+			LastName:  strings.TrimSpace(record[2]),
+			MemberID:  strings.TrimSpace(record[3]),
+			Position:  strings.TrimSpace(record[4]),
+			RoomID:    roomID,
+			IsActive:  false,
+		}
+
+		// insert and skip duplicate
+		_, err = s.db.NewInsert().Model(player).Exec(ctx)
+		if err != nil && !strings.Contains(err.Error(), "duplicate key value") {
+			return errors.New("failed to insert some data")
+		}
+	}
+
+	return nil
 }

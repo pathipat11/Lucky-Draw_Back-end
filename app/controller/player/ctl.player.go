@@ -126,3 +126,38 @@ func (ctl *Controller) Delete(ctx *gin.Context) {
 	}
 	response.Success(ctx, nil)
 }
+
+// new fucntion
+
+func (ctl *Controller) ImportCSV(ctx *gin.Context) {
+	file, err := ctx.FormFile("file")
+	if err != nil {
+		logger.Errf("failed to get form file: %v", err)
+		response.BadRequest(ctx, "invalid file upload")
+		return
+	}
+
+	// Open file
+	src, err := file.Open()
+	if err != nil {
+		logger.Errf("failed to open uploaded file: %v", err)
+		response.InternalError(ctx, "unable to read file")
+		return
+	}
+	defer src.Close()
+
+	roomID := ctx.PostForm("room_id")
+	if roomID == "" {
+		response.BadRequest(ctx, "room_id is required")
+		return
+	}
+
+	err = ctl.Service.ImportPlayersFromCSV(ctx, src, roomID)
+	if err != nil {
+		logger.Errf("failed to import CSV: %v", err)
+		response.InternalError(ctx, "CSV import failed")
+		return
+	}
+
+	response.Success(ctx, "import successful")
+}

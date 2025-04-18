@@ -8,13 +8,13 @@ type Player struct {
 	bun.BaseModel `bun:"table:players"`
 
 	ID        string `json:"id" bun:",pk,type:uuid,default:gen_random_uuid()"`
-	Prefix    string `bun:"prefix, notnull"`
-	FirstName string `bun:"first_name, notnull"`
-	LastName  string `bun:"last_name, notnull"`
-	MemberID  string `bun:"member_id, unique, notnull"`
-	Position  string `bun:"position, notnull"`
-	RoomID    string `bun:"room_id, notnull"`
-	IsActive  bool   `bun:"is_active, type:boolean, default:false, notnull"`
+	Prefix    string `bun:"prefix,notnull"`
+	FirstName string `bun:"first_name,notnull"`
+	LastName  string `bun:"last_name,notnull"`
+	MemberID  string `bun:"member_id,unique,notnull"`
+	Position  string `bun:"position,notnull"`
+	RoomID    string `bun:"room_id,notnull"`
+	IsActive  bool   `bun:"is_active,type:boolean,default:false,notnull"`
 
 	Room *Room `bun:"rel:belongs-to,join:room_id=id"`
 

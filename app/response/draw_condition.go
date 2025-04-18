@@ -8,3 +8,11 @@ type ListDrawCondition struct {
 	FilterPosition string `bun:"filter_position" json:"filter_position"`
 	Quantity       int64  `bun:"quantity" json:"quantity"`
 }
+
+type PreviewPlayer struct {
+	ID        string `bun:"id" json:"id"`
+	Prefix    string `bun:"prefix" json:"prefix"`
+	FirstName string `bun:"first_name" json:"first_name"`
+	LastName  string `bun:"last_name" json:"last_name"`
+	Position  string `bun:"position" json:"position"`
+}

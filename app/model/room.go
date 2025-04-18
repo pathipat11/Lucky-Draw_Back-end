@@ -8,7 +8,7 @@ type Room struct {
 	bun.BaseModel `bun:"table:rooms"`
 
 	ID   string `json:"id" bun:",pk,type:uuid,default:gen_random_uuid()"`
-	Name string `bun:"name, notnull"`
+	Name string `bun:"name,notnull"`
 
 	Players        []Player        `bun:"rel:has-many,join:id=room_id"`
 	Prizes         []Prize         `bun:"rel:has-many,join:id=room_id"`

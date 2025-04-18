@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func (s *Service) Create(ctx context.Context, req request.CreateWinner) (*model.Winner, bool, error) {
+func (s *Service) Create(ctx context.Context, req request.CreateWinner) (*response.ListWinnerDetail, bool, error) {
 
 	m := &model.Winner{
 		RoomID:          req.RoomID,
@@ -28,7 +28,36 @@ func (s *Service) Create(ctx context.Context, req request.CreateWinner) (*model.
 		}
 	}
 
-	return m, false, err
+	result := &response.ListWinnerDetail{}
+	err = s.db.NewSelect().
+		TableExpr("winners AS w").
+		ColumnExpr("w.id").
+		ColumnExpr("w.room_id").
+		ColumnExpr("r.name AS room_name").
+		ColumnExpr("w.player_id").
+		ColumnExpr("p.prefix").
+		ColumnExpr("p.first_name").
+		ColumnExpr("p.last_name").
+		ColumnExpr("p.position").
+		ColumnExpr("w.prize_id").
+		ColumnExpr("pr.name AS prize_name").
+		ColumnExpr("pr.image_url").
+		ColumnExpr("w.draw_condition_id").
+		ColumnExpr("dc.filter_status").
+		ColumnExpr("dc.filter_position").
+		ColumnExpr("dc.quantity").
+		Join("JOIN rooms r ON r.id = w.room_id").
+		Join("JOIN players p ON p.id = w.player_id").
+		Join("JOIN prizes pr ON pr.id = w.prize_id").
+		Join("JOIN draw_conditions dc ON dc.id = w.draw_condition_id").
+		Where("w.id = ?", m.ID).
+		Scan(ctx, result)
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	return result, false, err
 }
 
 func (s *Service) Update(ctx context.Context, req request.UpdateWinner, id request.GetByIDWinner) (*model.Winner, bool, error) {

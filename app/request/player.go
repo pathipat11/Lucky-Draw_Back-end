@@ -26,3 +26,13 @@ type ListPlayer struct {
 type GetByIDPlayer struct {
 	ID string `uri:"id" binding:"required"`
 }
+
+type CreatePlayerIM struct {
+	Prefix    string `json:"prefix" binding:"required"`
+	FirstName string `json:"first_name" binding:"required"`
+	LastName  string `json:"last_name" binding:"required"`
+	MemberID  string `json:"member_id" binding:"required"`
+	Position  string `json:"position" binding:"required"`
+	RoomID    string `json:"room_id" binding:"required"`
+	IsActive  bool   `json:"is_active"`
+}

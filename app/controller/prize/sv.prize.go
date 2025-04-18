@@ -9,26 +9,45 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
-func (s *Service) Create(ctx context.Context, req request.CreatePrize) (*model.Prize, bool, error) {
+func (s *Service) Create(ctx context.Context, req request.CreatePrize) (*response.Prize, bool, error) {
+
+	roomExists, err := s.db.NewSelect().Model((*model.Room)(nil)).Where("id = ?", req.RoomID).Exists(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	if !roomExists {
+		return nil, true, errors.New("room not found")
+	}
 
 	m := &model.Prize{
 		Name:     req.Name,
 		ImageURL: req.ImageURL,
-		Quantity: int64(req.Quantity),
+		Quantity: req.Quantity,
 		RoomID:   req.RoomID,
 	}
 
-	_, err := s.db.NewInsert().Model(m).Exec(ctx)
+	_, err = s.db.NewInsert().Model(m).Exec(ctx)
 
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key value") {
 			return nil, true, errors.New("prize already exists")
 		}
+		return nil, false, err
 	}
 
-	return m, false, err
+	resp := &response.Prize{
+		ID:        m.ID,
+		Name:      m.Name,
+		ImageURL:  m.ImageURL,
+		Quantity:  m.Quantity,
+		RoomID:    m.RoomID,
+		CreatedAt: time.Unix(m.CreatedAt, 0).Format("2006-01-02 15:04:05"),
+	}
+
+	return resp, false, nil
 }
 
 func (s *Service) Update(ctx context.Context, req request.UpdatePrize, id request.GetByIDPrize) (*model.Prize, bool, error) {

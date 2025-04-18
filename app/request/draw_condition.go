@@ -24,3 +24,9 @@ type ListDrawCondition struct {
 type GetByIDDrawCondition struct {
 	ID string `uri:"id" binding:"required"`
 }
+
+type PreviewPlayers struct {
+	RoomID         string `json:"room_id" binding:"required"`
+	FilterStatus   string `json:"filter_status"`
+	FilterPosition string `json:"filter_position"`
+}

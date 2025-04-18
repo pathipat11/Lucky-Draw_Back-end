@@ -9,7 +9,7 @@ import (
 )
 
 func (ctl *Controller) Create(ctx *gin.Context) {
-	body := request.CreatePrize{}
+	var body request.CreatePrize
 
 	if err := ctx.Bind(&body); err != nil {
 		logger.Errf(err.Error())
@@ -17,7 +17,7 @@ func (ctl *Controller) Create(ctx *gin.Context) {
 		return
 	}
 
-	_, mserr, err := ctl.Service.Create(ctx, body)
+	data, mserr, err := ctl.Service.Create(ctx, body)
 	if err != nil {
 		ms := "internal server error"
 		if mserr {
@@ -28,7 +28,7 @@ func (ctl *Controller) Create(ctx *gin.Context) {
 		return
 	}
 
-	response.Success(ctx, nil)
+	response.Success(ctx, data)
 }
 
 func (ctl *Controller) Update(ctx *gin.Context) {

@@ -18,6 +18,6 @@ func DrawCondition(router *gin.RouterGroup) {
 		draw_condition.GET("/list", ctl.DrawConditionCtl.List)
 		draw_condition.GET("/:id", ctl.DrawConditionCtl.Get)
 		draw_condition.DELETE("/:id", ctl.DrawConditionCtl.Delete)
-
+		draw_condition.POST("/preview", ctl.DrawConditionCtl.PreviewPlayer)
 	}
 }

@@ -12,6 +12,15 @@ import (
 )
 
 func (s *Service) Create(ctx context.Context, req request.CreateDrawCondition) (*model.DrawCondition, bool, error) {
+	prize := model.Prize{}
+	err := s.db.NewSelect().
+		Model(&prize).
+		Where("id = ?", req.PrizeID).
+		Where("quantity >= ?", req.Quantity).
+		Scan(ctx)
+	if err != nil {
+		return nil, true, errors.New("not enough prize quantity")
+	}
 
 	m := &model.DrawCondition{
 		RoomID:         req.RoomID,
@@ -21,15 +30,25 @@ func (s *Service) Create(ctx context.Context, req request.CreateDrawCondition) (
 		Quantity:       int64(req.Quantity),
 	}
 
-	_, err := s.db.NewInsert().Model(m).Exec(ctx)
-
+	_, err = s.db.NewInsert().Model(m).Exec(ctx)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key value") {
 			return nil, true, errors.New("draw_condition already exists")
 		}
+		return nil, false, err
 	}
 
-	return m, false, err
+	_, err = s.db.NewUpdate().
+		Model((*model.Prize)(nil)).
+		Set("quantity = quantity - ?", req.Quantity).
+		Where("id = ?", req.PrizeID).
+		Where("quantity >= ?", req.Quantity).
+		Exec(ctx)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to update prize quantity: %w", err)
+	}
+
+	return m, false, nil
 }
 
 func (s *Service) Update(ctx context.Context, req request.UpdateDrawCondition, id request.GetByIDDrawCondition) (*model.DrawCondition, bool, error) {
@@ -124,4 +143,27 @@ func (s *Service) Delete(ctx context.Context, id request.GetByIDDrawCondition) e
 	// data, err := s.db.NewDelete().Table("room").Where("id = ?", id.ID).Exec(ctx)
 	_, err = s.db.NewDelete().Model((*model.DrawCondition)(nil)).Where("id = ?", id.ID).Exec(ctx)
 	return err
+}
+
+// new function
+func (s *Service) PreviewPlayer(ctx context.Context, req request.PreviewPlayers) ([]response.PreviewPlayer, error) {
+	query := s.db.NewSelect().
+		TableExpr("players AS p").
+		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.position").
+		Where("p.room_id = ?", req.RoomID).
+		Where("p.deleted_at IS NULL")
+
+	if req.FilterPosition != "" {
+		query = query.Where("p.position = ?", req.FilterPosition)
+	}
+
+	if req.FilterStatus == "received" {
+		query = query.Where("p.is_active = true")
+	} else if req.FilterStatus == "not_received" {
+		query = query.Where("p.is_active = false")
+	}
+
+	var players []response.PreviewPlayer
+	err := query.Scan(ctx, &players)
+	return players, err
 }

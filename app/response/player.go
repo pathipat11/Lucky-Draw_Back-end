@@ -8,5 +8,6 @@ type ListPlayer struct {
 	MemberID  string `bun:"member_id" json:"member_id"`
 	Position  string `bun:"position" json:"position"`
 	RoomID    string `bun:"room_id" json:"room_id"`
+	RoomName  string `bun:"room_name" json:"room_name"`
 	IsActive  bool   `bun:"is_active" json:"is_active"`
 }
