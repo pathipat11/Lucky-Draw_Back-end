@@ -8,7 +8,12 @@ func Models() []any {
 		// (*model.RolePermission)(nil),
 		// (*model.Role)(nil),
 		// (*model.User)(nil),
-		(*model.User)(nil),
+		// (*model.User)(nil),
+		(*model.Room)(nil),
+		(*model.Player)(nil),
+		(*model.Prize)(nil),
+		(*model.DrawCondition)(nil),
+		(*model.Winner)(nil),
 	}
 }
 
