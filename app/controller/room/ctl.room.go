@@ -11,7 +11,7 @@ import (
 func (ctl *Controller) Create(ctx *gin.Context) {
 	body := request.CreateRoom{}
 
-	if err := ctx.Bind(&body); err != nil {
+	if err := ctx.ShouldBindJSON(&body); err != nil {
 		logger.Errf(err.Error())
 		response.BadRequest(ctx, err.Error())
 		return
