@@ -15,6 +15,7 @@ type ListPlayer struct {
 }
 
 type ListAllRoomResponse struct {
+	Room           *model.Room           `bun:"room" json:"room"`
 	Players        []model.Player        `bun:"players" json:"players"`
 	Prizes         []model.Prize         `bun:"prizes" json:"prizes"`
 	DrawConditions []model.DrawCondition `bun:"draw_conditions" json:"draw_conditions"`

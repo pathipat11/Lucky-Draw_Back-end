@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/uptrace/bun"
 )
 
 func (s *Service) Create(ctx context.Context, req request.CreateDrawCondition) (*model.DrawCondition, bool, error) {
@@ -143,8 +145,8 @@ func (s *Service) PreviewPlayer(ctx context.Context, req request.PreviewPlayers)
 		Where("p.room_id = ?", req.RoomID).
 		Where("p.deleted_at IS NULL")
 
-	if req.FilterPosition != "" {
-		query = query.Where("p.position = ?", req.FilterPosition)
+	if len(req.FilterPosition) > 0 {
+		query = query.Where("p.position IN (?)", bun.In(req.FilterPosition))
 	}
 
 	if req.FilterStatus == "received" {

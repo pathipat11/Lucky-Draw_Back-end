@@ -121,23 +121,56 @@ func (s *Service) ListAll(ctx context.Context, id request.GetByIDRoom) (*respons
 	room := &model.Room{}
 	err := s.db.NewSelect().
 		Model(room).
-		Relation("Players").
-		Relation("Prizes").
-		Relation("Prizes.Winners").
-		Relation("Prizes.DrawConditions").
-		Relation("DrawConditions").
-		Relation("Winners").
 		Where("room.id = ?", id.ID).
 		Scan(ctx)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("room not found: %w", err)
+	}
+
+	var players []model.Player
+	err = s.db.NewSelect().
+		Model(&players).
+		Where("room_id = ?", id.ID).
+		Scan(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load players: %w", err)
+	}
+
+	var prizes []model.Prize
+	err = s.db.NewSelect().
+		Model(&prizes).
+		Relation("DrawConditions").
+		Relation("Winners").
+		Where("room_id = ?", id.ID).
+		Scan(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load prizes: %w", err)
+	}
+
+	var drawConditions []model.DrawCondition
+	err = s.db.NewSelect().
+		Model(&drawConditions).
+		Where("room_id = ?", id.ID).
+		Scan(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load draw conditions: %w", err)
+	}
+
+	var winners []model.Winner
+	err = s.db.NewSelect().
+		Model(&winners).
+		Where("room_id = ?", id.ID).
+		Scan(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load winners: %w", err)
 	}
 
 	return &response.ListAllRoomResponse{
-		Players:        room.Players,
-		Prizes:         room.Prizes,
-		DrawConditions: room.DrawConditions,
-		Winners:        room.Winners,
+		Room:           room,
+		Players:        players,
+		Prizes:         prizes,
+		DrawConditions: drawConditions,
+		Winners:        winners,
 	}, nil
 }
