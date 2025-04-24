@@ -76,8 +76,8 @@ func (ctl *Controller) List(ctx *gin.Context) {
 		req.Page = 1
 	}
 
-	if req.Page == 0 {
-		req.Page = 10
+	if req.Size == 0 {
+		req.Size = 10
 	}
 
 	if req.OrderBy == "" {
@@ -157,7 +157,9 @@ func (ctl *Controller) UploadImage(ctx *gin.Context) {
 		return
 	}
 
-	uploadResult, err := cld.Upload.Upload(ctx, src, uploader.UploadParams{})
+	uploadResult, err := cld.Upload.Upload(ctx, src, uploader.UploadParams{
+		Folder: "prizes",
+	})
 	if err != nil {
 		logger.Errf("upload error: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "upload to cloudinary failed"})
