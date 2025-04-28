@@ -5,6 +5,7 @@ type CreateDrawCondition struct {
 	PrizeID        string   `json:"prize_id"`
 	FilterStatus   string   `json:"filter_status"`
 	FilterPosition []string `json:"filter_position"`
+	FilterIsActive bool     `json:"filter_is_active"`
 	Quantity       int64    `json:"quantity"`
 }
 
@@ -29,4 +30,5 @@ type PreviewPlayers struct {
 	RoomID         string   `json:"room_id" binding:"required"`
 	FilterStatus   string   `json:"filter_status"`
 	FilterPosition []string `json:"filter_position"`
+	FilterIsActive bool     `json:"filter_is_active"`
 }

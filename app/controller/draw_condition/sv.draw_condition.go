@@ -29,6 +29,7 @@ func (s *Service) Create(ctx context.Context, req request.CreateDrawCondition) (
 		PrizeID:        req.PrizeID,
 		FilterStatus:   req.FilterStatus,
 		FilterPosition: req.FilterPosition,
+		FilterIsActive: req.FilterIsActive,
 		Quantity:       int64(req.Quantity),
 	}
 
@@ -59,12 +60,13 @@ func (s *Service) Update(ctx context.Context, req request.UpdateDrawCondition, i
 		PrizeID:        req.PrizeID,
 		FilterStatus:   req.FilterStatus,
 		FilterPosition: req.FilterPosition,
+		FilterIsActive: req.FilterIsActive,
 		Quantity:       int64(req.Quantity),
 	}
 	logger.Info(m)
 	m.SetUpdateNow()
 	_, err = s.db.NewUpdate().Model(m).
-		Set("room_id = ?room_id, prize_id = ?prize_id, filter_status = ?filter_status, filter_position = ?filter_position, quantity = ?quantity").
+		Set("room_id = ?room_id, prize_id = ?prize_id, filter_status = ?filter_status, filter_position = ?filter_position, filter_is_active = ?filter_is_active, quantity = ?quantity").
 		WherePK().
 		OmitZero().
 		Returning("*").
@@ -84,7 +86,7 @@ func (s *Service) List(ctx context.Context, req request.ListDrawCondition) ([]re
 	m := []response.ListDrawCondition{}
 	query := s.db.NewSelect().
 		TableExpr("draw_conditions AS d").
-		Column("d.id", "d.room_id", "d.prize_id", "d.filter_status", "d.filter_position", "d.quantity").
+		Column("d.id", "d.room_id", "d.prize_id", "d.filter_status", "d.filter_position", "d.filter_is_active", "d.quantity").
 		Where("deleted_at IS NULL")
 
 	if req.Search != "" {
@@ -114,7 +116,7 @@ func (s *Service) Get(ctx context.Context, id request.GetByIDDrawCondition) (*re
 	m := response.ListDrawCondition{}
 	err := s.db.NewSelect().
 		TableExpr("draw_conditions AS d").
-		Column("d.id", "d.room_id", "d.prize_id", "d.filter_status", "d.filter_position", "d.quantity").
+		Column("d.id", "d.room_id", "d.prize_id", "d.filter_status", "d.filter_position", "d.filter_is_active", "d.quantity").
 		Where("id = ?", id.ID).
 		Where("deleted_at IS NULL").
 		Scan(ctx, &m)
@@ -145,7 +147,7 @@ func (s *Service) PreviewPlayer(ctx context.Context, req request.PreviewPlayers)
 
 	query := s.db.NewSelect().
 		TableExpr("players AS p").
-		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.member_id", "p.position").
+		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.member_id", "p.position", "p.is_active").
 		Where("p.room_id = ?", req.RoomID).
 		Where("p.deleted_at IS NULL")
 
@@ -163,6 +165,14 @@ func (s *Service) PreviewPlayer(ctx context.Context, req request.PreviewPlayers)
 		query = query.Where("p.id::text IN (?)", subQuery)
 	} else if req.FilterStatus == "not_received" {
 		query = query.Where("p.id::text NOT IN (?)", subQuery)
+	}
+
+	// ตรวจสอบค่า FilterIsActive
+	if req.FilterIsActive {
+		query = query.Where("p.is_active = ?", true) // แสดงเฉพาะผู้ที่มาหรือมี is_active = true
+	} else {
+		// ถ้า FilterIsActive เป็น false, จะแสดงผู้เล่นที่มี is_active = true หรือ false
+		query = query.Where("p.is_active IN (?, ?)", true, false)
 	}
 
 	var players []response.PreviewPlayer
