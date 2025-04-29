@@ -74,8 +74,8 @@ func (ctl *Controller) List(ctx *gin.Context) {
 		req.Page = 1
 	}
 
-	if req.Page == 0 {
-		req.Page = 10
+	if req.Size == 0 {
+		req.Size = 10
 	}
 
 	if req.OrderBy == "" {
@@ -148,7 +148,6 @@ func (ctl *Controller) PreviewPlayer(ctx *gin.Context) {
 	response.Success(ctx, data)
 }
 
-
 func (ctl *Controller) GetDrawConditionPreview(ctx *gin.Context) {
 	ID := request.GetByIDDrawCondition{}
 	if err := ctx.BindUri(&ID); err != nil {
@@ -166,4 +165,3 @@ func (ctl *Controller) GetDrawConditionPreview(ctx *gin.Context) {
 
 	response.Success(ctx, data)
 }
-
