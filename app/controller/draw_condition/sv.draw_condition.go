@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
@@ -94,7 +95,7 @@ func (s *Service) List(ctx context.Context, req request.ListDrawCondition) ([]re
 			search := strings.ToLower(req.Search)
 			query.Where(fmt.Sprintf("LOWER(d.%s) LIKE ?", req.SearchBy), "%"+search+"%")
 		} else {
-			query.Where("d.id::uuid = ?", req.Search)
+			query.Where("d.room_id::uuid = ?", req.Search)
 		}
 	}
 
@@ -140,42 +141,83 @@ func (s *Service) Delete(ctx context.Context, id request.GetByIDDrawCondition) e
 
 // new function
 func (s *Service) PreviewPlayer(ctx context.Context, req request.PreviewPlayers) ([]response.PreviewPlayer, error) {
-	subQuery := s.db.NewSelect().
-		Table("winners").
-		Column("player_id").
-		Where("deleted_at IS NULL")
-
 	query := s.db.NewSelect().
 		TableExpr("players AS p").
-		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.member_id", "p.position", "p.is_active").
+		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.member_id", "p.position", "p.is_active", "p.status").
 		Where("p.room_id = ?", req.RoomID).
 		Where("p.deleted_at IS NULL")
 
-	// if len(req.FilterPosition) > 0 {
-	// 	query = query.Where("p.position IN (?)", bun.In(req.FilterPosition))
-	// }
-
-	if len(req.FilterPosition) == 0 {
-		return []response.PreviewPlayer{}, nil
-	} else {
+	// Filter by Position
+	if len(req.FilterPosition) > 0 {
 		query = query.Where("p.position IN (?)", bun.In(req.FilterPosition))
 	}
 
-	if req.FilterStatus == "received" {
-		query = query.Where("p.id::text IN (?)", subQuery)
-	} else if req.FilterStatus == "not_received" {
-		query = query.Where("p.id::text NOT IN (?)", subQuery)
+	// Filter by Status — ถ้าเป็น "not_received" หรือไม่มีค่าเลย ให้แสดงทุกคน
+	if len(req.FilterStatus) > 0 {
+		query = query.Where("p.status IN (?)", bun.In(req.FilterStatus))
 	}
 
-	// ตรวจสอบค่า FilterIsActive
+	// Filter by IsActive
 	if req.FilterIsActive {
-		query = query.Where("p.is_active = ?", true) // แสดงเฉพาะผู้ที่มาหรือมี is_active = true
-	} else {
-		// ถ้า FilterIsActive เป็น false, จะแสดงผู้เล่นที่มี is_active = true หรือ false
-		query = query.Where("p.is_active IN (?, ?)", true, false)
+		query = query.Where("p.is_active = TRUE")
 	}
 
 	var players []response.PreviewPlayer
 	err := query.Scan(ctx, &players)
 	return players, err
+}
+
+func (s *Service) GetDrawConditionPreview(ctx context.Context, id string) (*response.DrawConditionPreview, error) {
+	// Convert the string id to UUID
+	drawConditionID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid UUID format for id: %v", err)
+	}
+
+	// Fetch the draw condition
+	dc := model.DrawCondition{}
+	err = s.db.NewSelect().Model(&dc).Where("id = ?", drawConditionID).Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch the associated players
+	query := s.db.NewSelect().
+		TableExpr("players AS p").
+		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.member_id", "p.position", "p.is_active", "p.status").
+		Where("p.room_id = ?", dc.RoomID).
+		Where("p.deleted_at IS NULL")
+
+	// Apply filters
+	if len(dc.FilterPosition) > 0 {
+		query = query.Where("p.position IN (?)", bun.In(dc.FilterPosition))
+	}
+
+	if len(dc.FilterStatus) > 0 {
+		query = query.Where("p.status IN (?)", bun.In(dc.FilterStatus))
+	}
+
+	if dc.FilterIsActive {
+		query = query.Where("p.is_active = TRUE")
+	}
+
+	var players []response.PreviewPlayer
+	err = query.Scan(ctx, &players)
+	if err != nil {
+		return nil, err
+	}
+
+	// Prepare the final response
+	result := &response.DrawConditionPreview{
+		ID:             dc.ID,
+		RoomID:         dc.RoomID,
+		PrizeID:        dc.PrizeID,
+		FilterStatus:   dc.FilterStatus,
+		FilterPosition: dc.FilterPosition,
+		FilterIsActive: dc.FilterIsActive,
+		Quantity:       dc.Quantity,
+		Players:        players,
+	}
+
+	return result, nil
 }

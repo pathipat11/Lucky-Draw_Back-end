@@ -17,7 +17,7 @@ func (ctl *Controller) Create(ctx *gin.Context) {
 		return
 	}
 
-	_, mserr, err := ctl.Service.Create(ctx, body)
+	data, mserr, err := ctl.Service.Create(ctx, body)
 	if err != nil {
 		ms := "internal server error"
 		if mserr {
@@ -28,7 +28,9 @@ func (ctl *Controller) Create(ctx *gin.Context) {
 		return
 	}
 
-	response.Success(ctx, nil)
+	response.Success(ctx, gin.H{
+		"id": data.ID,
+	})
 }
 
 func (ctl *Controller) Update(ctx *gin.Context) {
@@ -145,3 +147,23 @@ func (ctl *Controller) PreviewPlayer(ctx *gin.Context) {
 
 	response.Success(ctx, data)
 }
+
+
+func (ctl *Controller) GetDrawConditionPreview(ctx *gin.Context) {
+	ID := request.GetByIDDrawCondition{}
+	if err := ctx.BindUri(&ID); err != nil {
+		logger.Errf(err.Error())
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+
+	data, err := ctl.Service.GetDrawConditionPreview(ctx, ID.ID)
+	if err != nil {
+		logger.Errf(err.Error())
+		response.InternalError(ctx, err.Error())
+		return
+	}
+
+	response.Success(ctx, data)
+}
+

@@ -11,6 +11,15 @@ import (
 	"strings"
 )
 
+func contains(strs []string, target string) bool {
+	for _, s := range strs {
+		if s == target {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Service) Create(ctx context.Context, req request.CreateWinner) (*response.ListWinnerDetail, bool, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -52,14 +61,17 @@ func (s *Service) Create(ctx context.Context, req request.CreateWinner) (*respon
 		return nil, false, err
 	}
 
-	_, err = tx.NewUpdate().
-		Model((*model.Prize)(nil)).
-		Set("quantity = quantity - ?", drawCondition.Quantity).
-		Where("id = ?", req.PrizeID).
-		Where("quantity >= ?", drawCondition.Quantity).
-		Exec(ctx)
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to update prize quantity: %w", err)
+	if contains(drawCondition.FilterStatus, "received") || contains(drawCondition.FilterStatus, "not_received") {
+		_, err = tx.NewUpdate().
+			Model((*model.Prize)(nil)).
+			Set("quantity = quantity - ?", drawCondition.Quantity).
+			Where("id = ?", req.PrizeID).
+			Where("quantity >= ?", drawCondition.Quantity).
+			Exec(ctx)
+
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to update prize quantity: %w", err)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -77,12 +89,16 @@ func (s *Service) Create(ctx context.Context, req request.CreateWinner) (*respon
 		ColumnExpr("p.first_name").
 		ColumnExpr("p.last_name").
 		ColumnExpr("p.position").
+		ColumnExpr("p.member_id").
+		ColumnExpr("p.is_active").
+		ColumnExpr("p.status").
 		ColumnExpr("w.prize_id::uuid").
 		ColumnExpr("pr.name AS prize_name").
 		ColumnExpr("pr.image_url").
 		ColumnExpr("w.draw_condition_id::uuid").
 		ColumnExpr("dc.filter_status").
 		ColumnExpr("dc.filter_position").
+		ColumnExpr("dc.filter_is_active").
 		ColumnExpr("dc.quantity").
 		Join("JOIN rooms r ON r.id = w.room_id::uuid").
 		Join("JOIN players p ON p.id = w.player_id::uuid").
@@ -142,12 +158,11 @@ func (s *Service) List(ctx context.Context, req request.ListWinner) ([]response.
 		Where("w.deleted_at IS NULL")
 
 	if req.Search != "" {
-		search := fmt.Sprintf("%" + strings.ToLower(req.Search) + "%")
 		if req.SearchBy != "" {
 			search := strings.ToLower(req.Search)
-			query.Where(fmt.Sprintf("LOWER(w.%s) LIKE ?", req.SearchBy), search)
+			query.Where(fmt.Sprintf("LOWER(w.%s) LIKE ?", req.SearchBy), "%"+search+"%")
 		} else {
-			query.Where("LOWER(w.id::text) LIKE ?", search)
+			query.Where("w.room_id::uuid = ?", req.Search)
 		}
 	}
 

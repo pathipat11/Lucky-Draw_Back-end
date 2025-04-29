@@ -26,5 +26,6 @@ type ListWinnerDetail struct {
 	DrawConditionID string `bun:"draw_condition_id" json:"draw_condition_id"`
 	FilterStatus    string `bun:"filter_status" json:"filter_status"`
 	FilterPosition  string `bun:"filter_position" json:"filter_position"`
+	FilterIsActive  bool   `bun:"filter_is_active" json:"filter_is_active"`
 	Quantity        int64  `bun:"quantity" json:"quantity"`
 }

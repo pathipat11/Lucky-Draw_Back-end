@@ -23,6 +23,7 @@ func (s *Service) Create(ctx context.Context, req request.CreatePlayer) (*model.
 		Position:  req.Position,
 		RoomID:    req.RoomID,
 		IsActive:  req.IsActive,
+		Status:    req.Status,
 	}
 
 	_, err := s.db.NewInsert().Model(m).Exec(ctx)
@@ -55,11 +56,12 @@ func (s *Service) Update(ctx context.Context, req request.UpdatePlayer, id reque
 		Position:  req.Position,
 		RoomID:    req.RoomID,
 		IsActive:  req.IsActive,
+		Status:    req.Status,
 	}
 	logger.Info(m)
 	m.SetUpdateNow()
 	_, err = s.db.NewUpdate().Model(m).
-		Set("prefix = ?prefix, first_name = ?first_name, last_name = ?last_name, member_id = ?member_id, position = ?position, room_id = ?room_id, is_active = ?is_active").
+		Set("prefix = ?prefix, first_name = ?first_name, last_name = ?last_name, member_id = ?member_id, position = ?position, room_id = ?room_id, is_active = ?is_active, status = ?status").
 		WherePK().
 		OmitZero().
 		Returning("*").
@@ -79,7 +81,7 @@ func (s *Service) List(ctx context.Context, req request.ListPlayer) ([]response.
 	m := []response.ListPlayer{}
 	query := s.db.NewSelect().
 		TableExpr("players AS p").
-		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.member_id", "p.position", "p.room_id", "p.is_active").
+		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.member_id", "p.position", "p.room_id", "p.is_active", "p.status").
 		ColumnExpr("r.name AS room_name").
 		Join("LEFT JOIN rooms AS r ON r.id = p.room_id::uuid").
 		Where("p.deleted_at IS NULL")
@@ -111,10 +113,10 @@ func (s *Service) Get(ctx context.Context, id request.GetByIDPlayer) (*response.
 	m := response.ListPlayer{}
 	err := s.db.NewSelect().
 		TableExpr("players AS p").
-		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.member_id", "p.position", "p.room_id", "p.is_active").
+		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.member_id", "p.position", "p.room_id", "p.is_active", "p.status").
 		ColumnExpr("r.name AS room_name").
-		Join("LEFT JOIN rooms AS r ON r.id = p.room_id").
-		Where("p.id = ?", id.ID).
+		Join("LEFT JOIN rooms AS r ON r.id = p.room_id::uuid").
+		Where("p.id = ?::uuid", id.ID).
 		Where("p.deleted_at IS NULL").
 		Scan(ctx, &m)
 
@@ -164,7 +166,7 @@ func (s *Service) ImportPlayersFromCSV(ctx context.Context, file io.Reader, room
 
 		isActive := false
 		activeStr := strings.TrimSpace(strings.ToLower(record[5]))
-		if activeStr == "true" || activeStr == "1" || activeStr == "yes" || activeStr == "เข้า"{
+		if activeStr == "true" || activeStr == "1" || activeStr == "yes" || activeStr == "เข้า" {
 			isActive = true
 		}
 
@@ -176,6 +178,7 @@ func (s *Service) ImportPlayersFromCSV(ctx context.Context, file io.Reader, room
 			Position:  strings.TrimSpace(record[4]),
 			RoomID:    roomID,
 			IsActive:  isActive,
+			Status:    "not_received",
 		}
 
 		_, err = s.db.NewInsert().Model(player).Exec(ctx)
@@ -196,4 +199,3 @@ func (s *Service) ImportPlayersFromCSV(ctx context.Context, file io.Reader, room
 
 	return nil
 }
-
