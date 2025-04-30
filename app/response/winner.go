@@ -32,3 +32,16 @@ type ListWinnerDetail struct {
 	FilterIsActive  bool   `bun:"filter_is_active" json:"filter_is_active"`
 	Quantity        int64  `bun:"quantity" json:"quantity"`
 }
+
+type WinnerDashboard struct {
+	Winners []ListWinnerDetail `json:"winners"`
+	Prizes  []PrizeDashboard   `json:"prizes"`
+}
+
+type PrizeDashboard struct {
+	ID        string `json:"id"`
+	RoomID    string `json:"room_id"`
+	Name      string `json:"name"`
+	ImageURL  string `json:"image_url"`
+	Quantity  int    `json:"quantity"`
+}

@@ -61,8 +61,7 @@ func (s *Service) Create(ctx context.Context, req request.CreateWinner) (*respon
 		return nil, false, err
 	}
 
-	if req.PlayerStatus == "received" {
-		// กรณีได้รับรางวัลจริง ให้เปลี่ยนสถานะเป็น received และลดจำนวนรางวัล
+	if req.PlayerStatus == "not_received" {
 		_, err = tx.NewUpdate().
 			Model((*model.Player)(nil)).
 			Set("status = ?", "received").
@@ -82,7 +81,6 @@ func (s *Service) Create(ctx context.Context, req request.CreateWinner) (*respon
 			return nil, false, fmt.Errorf("failed to update prize quantity: %w", err)
 		}
 	} else if req.PlayerStatus == "no_show" || req.PlayerStatus == "waive" {
-		// ไม่ลดรางวัล แต่อัปเดตสถานะให้ตรงตามที่ front-end ส่งมา
 		_, err = tx.NewUpdate().
 			Model((*model.Player)(nil)).
 			Set("status = ?", req.PlayerStatus).
@@ -223,4 +221,55 @@ func (s *Service) Delete(ctx context.Context, id request.GetByIDWinner) error {
 	// data, err := s.db.NewDelete().Table("room").Where("id = ?", id.ID).Exec(ctx)
 	_, err = s.db.NewDelete().Model((*model.Winner)(nil)).Where("id = ?", id.ID).Exec(ctx)
 	return err
+}
+
+// new function
+
+func (s *Service) DashboardByRoomID(ctx context.Context, roomID string) (*response.WinnerDashboard, error) {
+	var winners []response.ListWinnerDetail
+	err := s.db.NewSelect().
+		TableExpr("winners AS w").
+		ColumnExpr("w.id::uuid").
+		ColumnExpr("w.room_id::uuid").
+		ColumnExpr("r.name AS room_name").
+		ColumnExpr("w.player_id::uuid").
+		ColumnExpr("p.prefix").
+		ColumnExpr("p.first_name").
+		ColumnExpr("p.last_name").
+		ColumnExpr("p.position").
+		ColumnExpr("p.member_id").
+		ColumnExpr("p.is_active").
+		ColumnExpr("p.status").
+		ColumnExpr("w.prize_id::uuid").
+		ColumnExpr("pr.name AS prize_name").
+		ColumnExpr("pr.image_url").
+		ColumnExpr("pr.quantity").
+		ColumnExpr("w.draw_condition_id::uuid").
+		Join("JOIN rooms r ON r.id = w.room_id::uuid").
+		Join("JOIN players p ON p.id = w.player_id::uuid").
+		Join("JOIN prizes pr ON pr.id = w.prize_id::uuid").
+		Where("w.room_id = ?", roomID).
+		Scan(ctx, &winners)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get winners: %w", err)
+	}
+
+	var prizes []response.PrizeDashboard
+	err = s.db.NewSelect().
+		TableExpr("prizes AS pr").
+		ColumnExpr("pr.id::uuid").
+		ColumnExpr("pr.room_id::uuid").
+		ColumnExpr("pr.name").
+		ColumnExpr("pr.image_url").
+		ColumnExpr("pr.quantity").
+		Where("pr.room_id = ?", roomID).
+		Scan(ctx, &prizes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get prizes: %w", err)
+	}
+
+	return &response.WinnerDashboard{
+		Winners: winners,
+		Prizes:  prizes,
+	}, nil
 }

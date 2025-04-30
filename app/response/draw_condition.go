@@ -19,7 +19,6 @@ type PreviewPlayer struct {
 	Position  string `bun:"position" json:"position"`
 	IsActive  bool   `bun:"is_active" json:"is_active"`
 	Status    string `bun:"status" json:"status"`
-	IsWinner  bool   `json:"is_winner"`
 }
 
 type DrawConditionPreview struct {
