@@ -73,7 +73,8 @@ func (s *Service) Create(ctx context.Context, req request.CreateWinner) (*respon
 
 		_, err = tx.NewUpdate().
 			Model((*model.Prize)(nil)).
-			Set("quantity = quantity - ?", drawCondition.Quantity).
+			// Set("quantity = quantity - ?", drawCondition.Quantity).
+			Set("quantity = quantity - 1").
 			Where("id = ?", req.PrizeID).
 			Where("quantity >= ?", drawCondition.Quantity).
 			Exec(ctx)

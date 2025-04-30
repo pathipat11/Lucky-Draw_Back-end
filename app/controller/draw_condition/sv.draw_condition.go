@@ -201,6 +201,16 @@ func (s *Service) GetDrawConditionPreview(ctx context.Context, id string) (*resp
 		query = query.Where("p.is_active = TRUE")
 	}
 
+	/// function check player_id & draw_condition_id in winners
+
+	// subQuery := s.db.NewSelect().
+	// 	Table("winners").
+	// 	ColumnExpr("1").
+	// 	Where("winners.player_id = p.id::text").
+	// 	Where("winners.draw_condition_id = ?", dc.ID)
+
+	// query = query.Where("NOT EXISTS (?)", subQuery)
+
 	var players []response.PreviewPlayer
 	err = query.Scan(ctx, &players)
 	if err != nil {
