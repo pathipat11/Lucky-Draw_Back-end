@@ -31,6 +31,7 @@ type ListWinnerDetail struct {
 	FilterPosition  string `bun:"filter_position" json:"filter_position"`
 	FilterIsActive  bool   `bun:"filter_is_active" json:"filter_is_active"`
 	Quantity        int64  `bun:"quantity" json:"quantity"`
+	CreatedAt       string `bun:"created_at" json:"created_at"`
 }
 
 type WinnerDashboard struct {
@@ -39,9 +40,9 @@ type WinnerDashboard struct {
 }
 
 type PrizeDashboard struct {
-	ID        string `json:"id"`
-	RoomID    string `json:"room_id"`
-	Name      string `json:"name"`
-	ImageURL  string `json:"image_url"`
-	Quantity  int    `json:"quantity"`
+	ID       string `json:"id"`
+	RoomID   string `json:"room_id"`
+	Name     string `json:"name"`
+	ImageURL string `json:"image_url"`
+	Quantity int    `json:"quantity"`
 }

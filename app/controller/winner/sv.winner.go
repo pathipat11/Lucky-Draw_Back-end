@@ -117,6 +117,7 @@ func (s *Service) Create(ctx context.Context, req request.CreateWinner) (*respon
 		ColumnExpr("dc.filter_position").
 		ColumnExpr("dc.filter_is_active").
 		ColumnExpr("dc.quantity").
+		ColumnExpr("w.created_at").
 		Join("JOIN rooms r ON r.id = w.room_id::uuid").
 		Join("JOIN players p ON p.id = w.player_id::uuid").
 		Join("JOIN prizes pr ON pr.id = w.prize_id::uuid").
@@ -228,27 +229,39 @@ func (s *Service) Delete(ctx context.Context, id request.GetByIDWinner) error {
 func (s *Service) DashboardByRoomID(ctx context.Context, roomID string) (*response.WinnerDashboard, error) {
 	var winners []response.ListWinnerDetail
 	err := s.db.NewSelect().
-		TableExpr("winners AS w").
-		ColumnExpr("w.id::uuid").
-		ColumnExpr("w.room_id::uuid").
-		ColumnExpr("r.name AS room_name").
-		ColumnExpr("w.player_id::uuid").
-		ColumnExpr("p.prefix").
-		ColumnExpr("p.first_name").
-		ColumnExpr("p.last_name").
-		ColumnExpr("p.position").
-		ColumnExpr("p.member_id").
-		ColumnExpr("p.is_active").
-		ColumnExpr("p.status").
-		ColumnExpr("w.prize_id::uuid").
-		ColumnExpr("pr.name AS prize_name").
-		ColumnExpr("pr.image_url").
-		ColumnExpr("pr.quantity").
-		ColumnExpr("w.draw_condition_id::uuid").
-		Join("JOIN rooms r ON r.id = w.room_id::uuid").
-		Join("JOIN players p ON p.id = w.player_id::uuid").
-		Join("JOIN prizes pr ON pr.id = w.prize_id::uuid").
-		Where("w.room_id = ?", roomID).
+		TableExpr(`
+			(
+				SELECT DISTINCT ON (w.player_id) 
+                w.id::uuid,
+                w.room_id::uuid,
+                r.name AS room_name,
+                w.player_id::uuid,
+                p.prefix,
+                p.first_name,
+                p.last_name,
+                p.position,
+                p.member_id,
+                p.is_active,
+                p.status,
+                w.prize_id::uuid,
+                pr.name AS prize_name,
+                pr.image_url,
+                pr.quantity,
+                w.draw_condition_id::uuid,
+                dc.filter_status,
+                dc.filter_position,
+                dc.filter_is_active,
+                dc.quantity,
+                w.created_at
+            FROM winners w
+            JOIN rooms r ON r.id = w.room_id::uuid
+            JOIN players p ON p.id = w.player_id::uuid
+            JOIN prizes pr ON pr.id = w.prize_id::uuid
+            JOIN draw_conditions dc ON dc.id = w.draw_condition_id::uuid
+            WHERE w.room_id = ?
+            ORDER BY w.player_id, w.created_at DESC
+        ) AS latest_winners
+		`, roomID).
 		Scan(ctx, &winners)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get winners: %w", err)
