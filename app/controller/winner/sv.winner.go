@@ -61,16 +61,35 @@ func (s *Service) Create(ctx context.Context, req request.CreateWinner) (*respon
 		return nil, false, err
 	}
 
-	if contains(drawCondition.FilterStatus, "received") || contains(drawCondition.FilterStatus, "not_received") {
+	if req.PlayerStatus == "received" {
+		// กรณีได้รับรางวัลจริง ให้เปลี่ยนสถานะเป็น received และลดจำนวนรางวัล
+		_, err = tx.NewUpdate().
+			Model((*model.Player)(nil)).
+			Set("status = ?", "received").
+			Where("id = ?", req.PlayerID).
+			Exec(ctx)
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to update player status: %w", err)
+		}
+
 		_, err = tx.NewUpdate().
 			Model((*model.Prize)(nil)).
 			Set("quantity = quantity - ?", drawCondition.Quantity).
 			Where("id = ?", req.PrizeID).
 			Where("quantity >= ?", drawCondition.Quantity).
 			Exec(ctx)
-
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to update prize quantity: %w", err)
+		}
+	} else if req.PlayerStatus == "no_show" || req.PlayerStatus == "waive" {
+		// ไม่ลดรางวัล แต่อัปเดตสถานะให้ตรงตามที่ front-end ส่งมา
+		_, err = tx.NewUpdate().
+			Model((*model.Player)(nil)).
+			Set("status = ?", req.PlayerStatus).
+			Where("id = ?", req.PlayerID).
+			Exec(ctx)
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to update player status: %w", err)
 		}
 	}
 

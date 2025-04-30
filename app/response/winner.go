@@ -17,7 +17,10 @@ type ListWinnerDetail struct {
 	Prefix    string `bun:"prefix" json:"prefix"`
 	FirstName string `bun:"first_name" json:"first_name"`
 	LastName  string `bun:"last_name" json:"last_name"`
+	MemberID  string `bun:"member_id" json:"member_id"`
 	Position  string `bun:"position" json:"position"`
+	IsActive  bool   `bun:"is_active" json:"is_active"`
+	Status    string `bun:"status" json:"status"`
 
 	PrizeID   string `bun:"prize_id" json:"prize_id"`
 	PrizeName string `bun:"prize_name" json:"prize_name"`
