@@ -24,7 +24,7 @@ A backend system for lucky draw activities and prize distribution, built with **
 |-------------|-------------------------------|
 | Backend     | Go (Golang)                   |
 | Framework   | Gin                           |
-| ORM         | Bun, Npm                      |
+| ORM         | Bun                           |
 | Database    | PostgreSQL                    |
 | File Upload | Cloudinary                    |
 | OS          | Linux (Fedora, Rocky)         |
