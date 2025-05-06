@@ -2,7 +2,9 @@ package helper
 
 import (
 	"encoding/json"
+	"os"
 
+	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,4 +24,17 @@ func GetUserByToken(ctx *gin.Context) (int64, error) {
 	}
 
 	return user.ID, nil
+}
+
+// function ถ้าจะใช่ให้ไปสร้าง cloudinay account ก่อน
+func NewCloudinary() (*cloudinary.Cloudinary, error) {
+	cld, err := cloudinary.NewFromParams(
+		os.Getenv("CLOUDINARY_CLOUD_NAME"),
+		os.Getenv("CLOUDINARY_API_KEY"),
+		os.Getenv("CLOUDINARY_API_SECRET"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return cld, nil
 }

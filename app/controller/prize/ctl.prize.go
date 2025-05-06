@@ -1,13 +1,12 @@
 package prize
 
 import (
+	"app/app/helper"
 	"app/app/request"
 	"app/app/response"
 	"app/internal/logger"
 	"net/http"
-	"os"
 
-	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gin-gonic/gin"
 )
@@ -146,11 +145,7 @@ func (ctl *Controller) UploadImage(ctx *gin.Context) {
 	}
 	defer src.Close()
 
-	cld, err := cloudinary.NewFromParams(
-		os.Getenv("CLOUDINARY_CLOUD_NAME"),
-		os.Getenv("CLOUDINARY_API_KEY"),
-		os.Getenv("CLOUDINARY_API_SECRET"),
-	)
+	cld, err := helper.NewCloudinary()
 	if err != nil {
 		logger.Errf("cloudinary config error: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "cloudinary config error"})
