@@ -4,16 +4,12 @@ import (
 	"app/app/controller/draw_condition"
 	"app/app/controller/player"
 	"app/app/controller/prize"
-	"app/app/controller/product"
 	"app/app/controller/room"
-	"app/app/controller/user"
 	"app/app/controller/winner"
 	"app/config"
 )
 
 type Controller struct {
-	ProductCtl       *product.Controller
-	UserCtl          *user.Controller
 	RoomCtl          *room.Controller
 	PlayerCtl        *player.Controller
 	PrizeCtl         *prize.Controller
@@ -26,9 +22,6 @@ type Controller struct {
 func New() *Controller {
 	db := config.GetDB()
 	return &Controller{
-
-		ProductCtl:       product.NewController(db),
-		UserCtl:          user.NewController(db),
 		RoomCtl:          room.NewController(db),
 		PlayerCtl:        player.NewController(db),
 		PrizeCtl:         prize.NewController(db),
