@@ -4,13 +4,14 @@ import (
 	"app/app/model"
 	"app/app/request"
 	"app/app/response"
-	"app/internal/logger"
 	"context"
 	"encoding/csv"
 	"errors"
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/uptrace/bun"
 )
 
 func (s *Service) Create(ctx context.Context, req request.CreatePlayer) (*model.Player, bool, error) {
@@ -38,29 +39,39 @@ func (s *Service) Create(ctx context.Context, req request.CreatePlayer) (*model.
 }
 
 func (s *Service) Update(ctx context.Context, req request.UpdatePlayer, id request.GetByIDPlayer) (*model.Player, bool, error) {
-	ex, err := s.db.NewSelect().Table("players").Where("id = ?", id.ID).Exists(ctx)
+	player := &model.Player{}
+	err := s.db.NewSelect().Model(player).Where("id = ?", id.ID).Scan(ctx)
 	if err != nil {
 		return nil, false, err
 	}
 
-	if !ex {
-		return nil, false, err
+	if req.Prefix != "" {
+		player.Prefix = req.Prefix
+	}
+	if req.FirstName != "" {
+		player.FirstName = req.FirstName
+	}
+	if req.LastName != "" {
+		player.LastName = req.LastName
+	}
+	if req.MemberID != "" {
+		player.MemberID = req.MemberID
+	}
+	if req.Position != "" {
+		player.Position = req.Position
+	}
+	if req.RoomID != "" {
+		player.RoomID = req.RoomID
+	}
+	if req.Status != "" {
+		player.Status = req.Status
 	}
 
-	m := &model.Player{
-		ID:        id.ID,
-		Prefix:    req.Prefix,
-		FirstName: req.FirstName,
-		LastName:  req.LastName,
-		MemberID:  req.MemberID,
-		Position:  req.Position,
-		RoomID:    req.RoomID,
-		IsActive:  req.IsActive,
-		Status:    req.Status,
-	}
-	logger.Info(m)
-	m.SetUpdateNow()
-	_, err = s.db.NewUpdate().Model(m).
+	player.IsActive = req.IsActive
+
+	player.SetUpdateNow()
+
+	_, err = s.db.NewUpdate().Model(player).
 		Set("prefix = ?prefix, first_name = ?first_name, last_name = ?last_name, member_id = ?member_id, position = ?position, room_id = ?room_id, is_active = ?is_active, status = ?status").
 		WherePK().
 		OmitZero().
@@ -72,13 +83,14 @@ func (s *Service) Update(ctx context.Context, req request.UpdatePlayer, id reque
 			return nil, true, errors.New("player already exists")
 		}
 	}
-	return m, false, err
+
+	return player, false, err
 }
 
 func (s *Service) List(ctx context.Context, req request.ListPlayer) ([]response.ListPlayer, int, error) {
 	offset := (req.Page - 1) * req.Size
-
 	m := []response.ListPlayer{}
+
 	query := s.db.NewSelect().
 		TableExpr("players AS p").
 		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.member_id", "p.position", "p.room_id", "p.is_active", "p.status").
@@ -86,13 +98,25 @@ func (s *Service) List(ctx context.Context, req request.ListPlayer) ([]response.
 		Join("LEFT JOIN rooms AS r ON r.id = p.room_id::uuid").
 		Where("p.deleted_at IS NULL")
 
-	if req.Search != "" {
-		if req.SearchBy != "" {
-			search := strings.ToLower(req.Search)
-			query.Where(fmt.Sprintf("LOWER(p.%s) LIKE ?", req.SearchBy), "%"+search+"%")
-		} else {
-			query.Where("p.room_id = ?", req.Search)
-		}
+	if req.RoomID != "" {
+		query.Where("p.room_id = ?", req.RoomID)
+	}
+
+	if len(req.Position) > 0 {
+		query.Where("p.position IN (?)", bun.In(req.Position))
+	}
+
+	if len(req.Status) > 0 {
+		query.Where("p.status IN (?)", bun.In(req.Status))
+	}
+
+	if req.IsActive != nil {
+		query.Where("p.is_active = ?", *req.IsActive)
+	}
+
+	if req.Search != "" && req.SearchBy != "" {
+		search := strings.ToLower(req.Search)
+		query.Where(fmt.Sprintf("LOWER(p.%s) LIKE ?", req.SearchBy), "%"+search+"%")
 	}
 
 	count, err := query.Count(ctx)
@@ -101,12 +125,12 @@ func (s *Service) List(ctx context.Context, req request.ListPlayer) ([]response.
 	}
 
 	order := fmt.Sprintf("p.%s %s", req.SortBy, req.OrderBy)
-
 	err = query.Order(order).Limit(req.Size).Offset(offset).Scan(ctx, &m)
 	if err != nil {
 		return nil, 0, err
 	}
-	return m, count, err
+
+	return m, count, nil
 }
 
 func (s *Service) Get(ctx context.Context, id request.GetByIDPlayer) (*response.ListPlayer, error) {

@@ -22,6 +22,11 @@ type ListPlayer struct {
 	SearchBy string `form:"search_by"`
 	SortBy   string `form:"sort_by"`
 	OrderBy  string `form:"order_by"`
+
+	RoomID   string `form:"room_id"`
+	Position []string `form:"position"`
+	IsActive *bool  `form:"is_active"`
+	Status   []string `form:"status"`
 }
 
 type GetByIDPlayer struct {
