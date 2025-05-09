@@ -251,6 +251,7 @@ func (s *Service) DashboardByRoomID(ctx context.Context, roomID string) (*respon
 		Model((*model.Prize)(nil)).
 		Column("id", "room_id", "name", "image_url", "quantity").
 		Where("room_id = ?", roomID).
+		Where("quantity > 0").
 		Where("deleted_at IS NULL").
 		Scan(ctx, &prizes)
 	if err != nil {
