@@ -93,7 +93,7 @@ func (s *Service) List(ctx context.Context, req request.ListPlayer) ([]response.
 
 	query := s.db.NewSelect().
 		TableExpr("players AS p").
-		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.member_id", "p.position", "p.room_id", "p.is_active", "p.status").
+		Column("p.id", "p.prefix", "p.first_name", "p.last_name", "p.member_id", "p.position", "p.room_id", "p.is_active", "p.status", "p.created_at").
 		ColumnExpr("r.name AS room_name").
 		Join("LEFT JOIN rooms AS r ON r.id = p.room_id::uuid").
 		Where("p.deleted_at IS NULL")
@@ -102,21 +102,13 @@ func (s *Service) List(ctx context.Context, req request.ListPlayer) ([]response.
 		query.Where("p.room_id = ?", req.RoomID)
 	}
 
-	if len(req.Position) > 0 {
-		query.Where("p.position IN (?)", bun.In(req.Position))
-	}
-
-	if len(req.Status) > 0 {
-		query.Where("p.status IN (?)", bun.In(req.Status))
-	}
-
-	if req.IsActive != nil {
-		query.Where("p.is_active = ?", *req.IsActive)
-	}
-
-	if req.Search != "" && req.SearchBy != "" {
-		search := strings.ToLower(req.Search)
-		query.Where(fmt.Sprintf("LOWER(p.%s) LIKE ?", req.SearchBy), "%"+search+"%")
+	if req.Search != "" {
+		search := "%" + strings.ToLower(req.Search) + "%"
+		query = query.WhereGroup(" AND ", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Where("LOWER(p.prefix) LIKE ?", search).
+				WhereOr("LOWER(p.first_name) LIKE ?", search).
+				WhereOr("LOWER(p.last_name) LIKE ?", search)
+		})
 	}
 
 	count, err := query.Count(ctx)
@@ -124,10 +116,25 @@ func (s *Service) List(ctx context.Context, req request.ListPlayer) ([]response.
 		return nil, 0, err
 	}
 
-	order := fmt.Sprintf("p.%s %s", req.SortBy, req.OrderBy)
+	// ถ้าไม่มีการส่ง sort_by หรือส่งแบบไม่ระบุที่แน่ชัด ให้ default เป็น created_at asc
+	sortBy := req.SortBy
+	orderBy := req.OrderBy
+	if sortBy == "" {
+		sortBy = "created_at"
+	}
+	if orderBy != "desc" {
+		orderBy = "asc"
+	}
+	order := fmt.Sprintf("p.%s %s", sortBy, orderBy)
+
 	err = query.Order(order).Limit(req.Size).Offset(offset).Scan(ctx, &m)
 	if err != nil {
 		return nil, 0, err
+	}
+
+	// ตรวจสอบว่ามีข้อมูลหรือไม่
+	if len(m) == 0 {
+		return nil, 0, fmt.Errorf("no players found")
 	}
 
 	return m, count, nil

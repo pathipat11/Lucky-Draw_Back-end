@@ -13,6 +13,7 @@ type ListPlayer struct {
 	RoomName  string `bun:"room_name" json:"room_name"`
 	IsActive  bool   `bun:"is_active" json:"is_active"`
 	Status    string `bun:"status" json:"status"`
+	CreatedAt string `bun:"created_at" json:"created_at"`
 }
 
 type ListAllRoomResponse struct {
