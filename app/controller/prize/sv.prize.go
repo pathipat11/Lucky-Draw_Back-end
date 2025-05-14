@@ -114,7 +114,7 @@ func (s *Service) List(ctx context.Context, req request.ListPrize) ([]response.L
 
 	order := fmt.Sprintf("p.%s %s", req.SortBy, req.OrderBy)
 
-	err = query.Order(order).Limit(req.Size).Offset(offset).Scan(ctx, &m)
+	err = query.Order(order).Offset(offset).Scan(ctx, &m)
 	if err != nil {
 		return nil, 0, err
 	}
