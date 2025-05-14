@@ -5,19 +5,39 @@ import (
 	"app/app/request"
 	"app/app/response"
 	"app/internal/logger"
-	"net/http"
+	"strconv"
 
-	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gin-gonic/gin"
 )
 
 func (ctl *Controller) Create(ctx *gin.Context) {
 	var body request.CreatePrize
 
-	if err := ctx.Bind(&body); err != nil {
-		logger.Errf(err.Error())
-		response.BadRequest(ctx, err.Error())
-		return
+	// Bind form fields
+	body.Name = ctx.PostForm("name")
+	body.Quantity, _ = strconv.ParseInt(ctx.PostForm("quantity"), 10, 64)
+	body.RoomID = ctx.PostForm("room_id")
+
+	// ตรวจสอบว่ามีไฟล์ image แนบมาหรือไม่
+	file, err := ctx.FormFile("image")
+	if err == nil {
+		// มีไฟล์ -> ทำการเปิดและอัปโหลด
+		src, err := file.Open()
+		if err != nil {
+			response.InternalError(ctx, "failed to open image")
+			return
+		}
+		defer src.Close()
+
+		imageURL, err := helper.UploadToCloudinary(ctx.Request.Context(), src, "prize_images")
+		if err != nil {
+			response.InternalError(ctx, "failed to upload image")
+			return
+		}
+		body.ImageURL = imageURL
+	} else {
+		// ไม่มีไฟล์ -> ไม่ต้องแนบรูป
+		body.ImageURL = ""
 	}
 
 	data, mserr, err := ctl.Service.Create(ctx, body)
@@ -26,7 +46,6 @@ func (ctl *Controller) Create(ctx *gin.Context) {
 		if mserr {
 			ms = err.Error()
 		}
-		logger.Errf(err.Error())
 		response.InternalError(ctx, ms)
 		return
 	}
@@ -37,16 +56,39 @@ func (ctl *Controller) Create(ctx *gin.Context) {
 func (ctl *Controller) Update(ctx *gin.Context) {
 	ID := request.GetByIDPrize{}
 	if err := ctx.BindUri(&ID); err != nil {
-		logger.Errf(err.Error())
 		response.BadRequest(ctx, err.Error())
 		return
 	}
 
 	body := request.UpdatePrize{}
-	if err := ctx.Bind(&body); err != nil {
-		logger.Errf(err.Error())
-		response.BadRequest(ctx, err.Error())
-		return
+	body.Name = ctx.PostForm("name")
+	body.Quantity, _ = strconv.ParseInt(ctx.PostForm("quantity"), 10, 64)
+	body.RoomID = ctx.PostForm("room_id")
+
+	// ถ้ามีไฟล์มาให้ อัปโหลดใหม่
+	file, err := ctx.FormFile("image")
+	if err == nil {
+		src, err := file.Open()
+		if err != nil {
+			response.InternalError(ctx, "failed to open image")
+			return
+		}
+		defer src.Close()
+
+		imageURL, err := helper.UploadToCloudinary(ctx.Request.Context(), src, "prize_images")
+		if err != nil {
+			response.InternalError(ctx, "failed to upload image")
+			return
+		}
+		body.ImageURL = imageURL
+	} else {
+		// ไม่มีไฟล์ใหม่ -> ดึงค่ารูปเดิมจาก database มาก่อน
+		oldData, err := ctl.Service.Get(ctx, ID)
+		if err != nil {
+			response.InternalError(ctx, "failed to get existing prize data")
+			return
+		}
+		body.ImageURL = oldData.ImageURL
 	}
 
 	_, mserr, err := ctl.Service.Update(ctx, body, ID)
@@ -55,7 +97,6 @@ func (ctl *Controller) Update(ctx *gin.Context) {
 		if mserr {
 			ms = err.Error()
 		}
-		logger.Errf(err.Error())
 		response.InternalError(ctx, ms)
 		return
 	}
@@ -128,40 +169,4 @@ func (ctl *Controller) Delete(ctx *gin.Context) {
 		return
 	}
 	response.Success(ctx, nil)
-}
-
-// new function
-func (ctl *Controller) UploadImage(ctx *gin.Context) {
-	file, err := ctx.FormFile("file")
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "no file uploaded"})
-		return
-	}
-
-	src, err := file.Open()
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "cannot open file"})
-		return
-	}
-	defer src.Close()
-
-	cld, err := helper.NewCloudinary()
-	if err != nil {
-		logger.Errf("cloudinary config error: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "cloudinary config error"})
-		return
-	}
-
-	uploadResult, err := cld.Upload.Upload(ctx, src, uploader.UploadParams{
-		Folder: "prizes",
-	})
-	if err != nil {
-		logger.Errf("upload error: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "upload to cloudinary failed"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"url": uploadResult.SecureURL,
-	})
 }

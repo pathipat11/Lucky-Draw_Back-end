@@ -1,10 +1,13 @@
 package helper
 
 import (
+	"context"
 	"encoding/json"
+	"mime/multipart"
 	"os"
 
 	"github.com/cloudinary/cloudinary-go/v2"
+	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gin-gonic/gin"
 )
 
@@ -27,14 +30,22 @@ func GetUserByToken(ctx *gin.Context) (int64, error) {
 }
 
 // function ถ้าจะใช่ให้ไปสร้าง cloudinay account ก่อน
-func NewCloudinary() (*cloudinary.Cloudinary, error) {
+func UploadToCloudinary(ctx context.Context, file multipart.File, folder string) (string, error) {
 	cld, err := cloudinary.NewFromParams(
 		os.Getenv("CLOUDINARY_CLOUD_NAME"),
 		os.Getenv("CLOUDINARY_API_KEY"),
 		os.Getenv("CLOUDINARY_API_SECRET"),
 	)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return cld, nil
+
+	uploadResult, err := cld.Upload.Upload(ctx, file, uploader.UploadParams{
+		Folder: folder,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return uploadResult.SecureURL, nil
 }

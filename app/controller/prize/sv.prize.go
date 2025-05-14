@@ -67,6 +67,11 @@ func (s *Service) Update(ctx context.Context, req request.UpdatePrize, id reques
 		Quantity: req.Quantity,
 		RoomID:   req.RoomID,
 	}
+
+	if req.ImageURL != "" {
+		m.ImageURL = req.ImageURL
+	}
+
 	logger.Info(m)
 	m.SetUpdateNow()
 	_, err = s.db.NewUpdate().Model(m).
