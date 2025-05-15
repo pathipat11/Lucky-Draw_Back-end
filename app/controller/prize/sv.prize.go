@@ -67,17 +67,14 @@ func (s *Service) Update(ctx context.Context, req request.UpdatePrize, id reques
 		Quantity: req.Quantity,
 		RoomID:   req.RoomID,
 	}
-
-	if req.ImageURL != "" {
-		m.ImageURL = req.ImageURL
-	}
+	
+	m.ImageURL = req.ImageURL
 
 	logger.Info(m)
 	m.SetUpdateNow()
 	_, err = s.db.NewUpdate().Model(m).
 		Set("name = ?name, image_url = ?image_url, quantity = ?quantity, room_id = ?room_id").
 		WherePK().
-		OmitZero().
 		Returning("*").
 		Exec(ctx)
 

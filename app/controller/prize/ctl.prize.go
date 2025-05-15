@@ -64,6 +64,7 @@ func (ctl *Controller) Update(ctx *gin.Context) {
 	body.Name = ctx.PostForm("name")
 	body.Quantity, _ = strconv.ParseInt(ctx.PostForm("quantity"), 10, 64)
 	body.RoomID = ctx.PostForm("room_id")
+	removeImage := ctx.PostForm("remove_image")
 
 	// ถ้ามีไฟล์มาให้ อัปโหลดใหม่
 	file, err := ctx.FormFile("image")
@@ -81,6 +82,9 @@ func (ctl *Controller) Update(ctx *gin.Context) {
 			return
 		}
 		body.ImageURL = imageURL
+	} else if removeImage == "true" {
+		// ไม่ส่งไฟล์ใหม่มา และตั้งใจลบรูป
+		body.ImageURL = ""
 	} else {
 		// ไม่มีไฟล์ใหม่ -> ดึงค่ารูปเดิมจาก database มาก่อน
 		oldData, err := ctl.Service.Get(ctx, ID)
