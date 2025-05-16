@@ -189,24 +189,24 @@ func (s *Service) ImportPlayersFromCSV(ctx context.Context, file io.Reader, room
 			return fmt.Errorf("error reading CSV on line %d: %v", lineNumber, err)
 		}
 
-		if len(record) < 6 {
+		if len(record) < 7 {
 			failedLines = append(failedLines, fmt.Sprintf("line %d: not enough columns", lineNumber))
 			lineNumber++
 			continue
 		}
 
 		isActive := false
-		activeStr := strings.TrimSpace(strings.ToLower(record[5]))
-		if activeStr == "true" || activeStr == "1" || activeStr == "yes" || activeStr == "เข้า" {
+		activeStr := strings.TrimSpace(strings.ToLower(record[6]))
+		if activeStr == "true" || activeStr == "1" || activeStr == "yes" || activeStr == "เข้า" || activeStr == "เข้าร่วม" {
 			isActive = true
 		}
 
 		player := &model.Player{
-			Prefix:    strings.TrimSpace(record[0]),
-			FirstName: strings.TrimSpace(record[1]),
-			LastName:  strings.TrimSpace(record[2]),
-			MemberID:  strings.TrimSpace(record[3]),
-			Position:  strings.TrimSpace(record[4]),
+			Prefix:    strings.TrimSpace(record[1]),
+			FirstName: strings.TrimSpace(record[2]),
+			LastName:  strings.TrimSpace(record[3]),
+			MemberID:  strings.TrimSpace(record[4]),
+			Position:  strings.TrimSpace(record[5]),
 			RoomID:    roomID,
 			IsActive:  isActive,
 			Status:    "not_received",
