@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/uptrace/bun"
+	"github.com/xuri/excelize/v2"
 )
 
 func (s *Service) Create(ctx context.Context, req request.CreatePlayer) (*model.Player, bool, error) {
@@ -222,6 +223,63 @@ func (s *Service) ImportPlayersFromCSV(ctx context.Context, file io.Reader, room
 		}
 
 		lineNumber++
+	}
+
+	if len(failedLines) > 0 {
+		return fmt.Errorf("some rows failed to import:\n%s", strings.Join(failedLines, "\n"))
+	}
+
+	return nil
+}
+
+func (s *Service) ImportPlayersFromXLSX(ctx context.Context, file io.Reader, roomID string) error {
+	xl, err := excelize.OpenReader(file)
+	if err != nil {
+		return fmt.Errorf("failed to read Excel file: %v", err)
+	}
+
+	sheetName := xl.GetSheetName(0)
+	rows, err := xl.GetRows(sheetName)
+	if err != nil {
+		return fmt.Errorf("failed to read rows from sheet: %v", err)
+	}
+
+	var failedLines []string
+
+	for i, row := range rows {
+		if i == 0 {
+			continue // ข้าม header
+		}
+		if len(row) < 7 {
+			failedLines = append(failedLines, fmt.Sprintf("line %d: not enough columns", i+1))
+			continue
+		}
+
+		isActive := false
+		activeStr := strings.TrimSpace(strings.ToLower(row[6]))
+		if activeStr == "true" || activeStr == "1" || activeStr == "yes" || activeStr == "เข้า" || activeStr == "เข้าร่วม" {
+			isActive = true
+		}
+
+		player := &model.Player{
+			Prefix:    strings.TrimSpace(row[1]),
+			FirstName: strings.TrimSpace(row[2]),
+			LastName:  strings.TrimSpace(row[3]),
+			MemberID:  strings.TrimSpace(row[4]),
+			Position:  strings.TrimSpace(row[5]),
+			RoomID:    roomID,
+			IsActive:  isActive,
+			Status:    "not_received",
+		}
+
+		_, err := s.db.NewInsert().Model(player).Exec(ctx)
+		if err != nil {
+			if strings.Contains(err.Error(), "duplicate key value") {
+				failedLines = append(failedLines, fmt.Sprintf("line %d: duplicate member_id (%s)", i+1, player.MemberID))
+			} else {
+				failedLines = append(failedLines, fmt.Sprintf("line %d: %v", i+1, err))
+			}
+		}
 	}
 
 	if len(failedLines) > 0 {

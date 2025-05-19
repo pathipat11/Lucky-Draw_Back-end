@@ -4,6 +4,8 @@ import (
 	"app/app/request"
 	"app/app/response"
 	"app/internal/logger"
+	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -129,16 +131,15 @@ func (ctl *Controller) Delete(ctx *gin.Context) {
 
 // new fucntion
 
-func (ctl *Controller) ImportCSV(ctx *gin.Context) {
-	file, err := ctx.FormFile("file")
+func (ctl *Controller) ImportPlayerFile(ctx *gin.Context) {
+	fileHeader, err := ctx.FormFile("file")
 	if err != nil {
 		logger.Errf("failed to get form file: %v", err)
 		response.BadRequest(ctx, "invalid file upload")
 		return
 	}
 
-	// Open file
-	src, err := file.Open()
+	src, err := fileHeader.Open()
 	if err != nil {
 		logger.Errf("failed to open uploaded file: %v", err)
 		response.InternalError(ctx, "unable to read file")
@@ -152,10 +153,20 @@ func (ctl *Controller) ImportCSV(ctx *gin.Context) {
 		return
 	}
 
-	err = ctl.Service.ImportPlayersFromCSV(ctx, src, roomID)
+	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+	switch ext {
+	case ".csv":
+		err = ctl.Service.ImportPlayersFromCSV(ctx, src, roomID)
+	case ".xlsx":
+		err = ctl.Service.ImportPlayersFromXLSX(ctx, src, roomID)
+	default:
+		response.BadRequest(ctx, "unsupported file type: only .csv and .xlsx allowed")
+		return
+	}
+
 	if err != nil {
-		logger.Errf("failed to import CSV: %v", err)
-		response.InternalError(ctx, "CSV import failed")
+		logger.Errf("failed to import player data: %v", err)
+		response.InternalError(ctx, "import failed")
 		return
 	}
 
