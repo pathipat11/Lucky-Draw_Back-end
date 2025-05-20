@@ -77,19 +77,25 @@ func (s *Service) Update(ctx context.Context, req request.UpdateRoom, id request
 func (s *Service) List(ctx context.Context, req request.ListRoom) ([]response.ListRoom, int, error) {
 	offset := (req.Page - 1) * req.Size
 
-	m := []response.ListRoom{}
+	type roomRaw struct {
+		ID       string  `bun:"id"`
+		Name     string  `bun:"name"`
+		Password *string `bun:"password"` // ใช้ pointer เพื่อเช็ค null
+	}
+
+	rawRooms := []roomRaw{}
+
 	query := s.db.NewSelect().
 		TableExpr("rooms AS r").
-		Column("r.id", "r.name").
-		Where("deleted_at IS NULL")
+		Column("r.id", "r.name", "r.password").
+		Where("r.deleted_at IS NULL")
 
 	if req.Search != "" {
-		search := fmt.Sprintf("%" + strings.ToLower(req.Search) + "%")
+		search := fmt.Sprintf("%%%s%%", strings.ToLower(req.Search))
 		if req.SearchBy != "" {
-			search := strings.ToLower(req.Search)
 			query.Where(fmt.Sprintf("LOWER(r.%s) LIKE ?", req.SearchBy), search)
 		} else {
-			query.Where("LOWER(name) LIKE ?", search)
+			query.Where("LOWER(r.name) LIKE ?", search)
 		}
 	}
 
@@ -99,12 +105,23 @@ func (s *Service) List(ctx context.Context, req request.ListRoom) ([]response.Li
 	}
 
 	order := fmt.Sprintf("r.%s %s", req.SortBy, req.OrderBy)
-
-	err = query.Order(order).Limit(req.Size).Offset(offset).Scan(ctx, &m)
+	err = query.Order(order).Limit(req.Size).Offset(offset).Scan(ctx, &rawRooms)
 	if err != nil {
 		return nil, 0, err
 	}
-	return m, count, err
+
+	// แปลงผลลัพธ์เป็น response.ListRoom
+	result := make([]response.ListRoom, 0, len(rawRooms))
+	for _, r := range rawRooms {
+		hasPassword := r.Password != nil && *r.Password != ""
+		result = append(result, response.ListRoom{
+			ID:          r.ID,
+			Name:        r.Name,
+			HasPassword: hasPassword,
+		})
+	}
+
+	return result, count, nil
 }
 
 func (s *Service) Get(ctx context.Context, id request.GetByIDRoom) (*response.ListRoom, error) {
@@ -132,63 +149,6 @@ func (s *Service) Delete(ctx context.Context, id request.GetByIDRoom) error {
 }
 
 // new function
-func (s *Service) ListAll(ctx context.Context, id request.GetByIDRoom) (*response.ListAllRoomResponse, error) {
-	room := &model.Room{}
-	err := s.db.NewSelect().
-		Model(room).
-		Where("room.id = ?", id.ID).
-		Scan(ctx)
-
-	if err != nil {
-		return nil, fmt.Errorf("room not found: %w", err)
-	}
-
-	var players []model.Player
-	err = s.db.NewSelect().
-		Model(&players).
-		Where("room_id = ?", id.ID).
-		Scan(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load players: %w", err)
-	}
-
-	var prizes []model.Prize
-	err = s.db.NewSelect().
-		Model(&prizes).
-		Relation("DrawConditions").
-		Relation("Winners").
-		Where("room_id = ?", id.ID).
-		Scan(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load prizes: %w", err)
-	}
-
-	var drawConditions []model.DrawCondition
-	err = s.db.NewSelect().
-		Model(&drawConditions).
-		Where("room_id = ?", id.ID).
-		Scan(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load draw conditions: %w", err)
-	}
-
-	var winners []model.Winner
-	err = s.db.NewSelect().
-		Model(&winners).
-		Where("room_id = ?", id.ID).
-		Scan(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load winners: %w", err)
-	}
-
-	return &response.ListAllRoomResponse{
-		Room:           room,
-		Players:        players,
-		Prizes:         prizes,
-		DrawConditions: drawConditions,
-		Winners:        winners,
-	}, nil
-}
 
 func (s *Service) Login(ctx context.Context, req request.LoginRoom) (*model.Room, error) {
 	var room model.Room
