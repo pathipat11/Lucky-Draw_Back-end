@@ -9,23 +9,38 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func (s *Service) Create(ctx context.Context, req request.CreateRoom) (*model.Room, bool, error) {
+	var hashedPassword string
+	var err error
 
-	m := &model.Room{
-		Name: req.Name,
+	// Hash password if provided
+	if req.Password != "" {
+		hashedBytes, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, false, errors.New("failed to hash password")
+		}
+		hashedPassword = string(hashedBytes)
 	}
 
-	_, err := s.db.NewInsert().Model(m).Exec(ctx)
+	m := &model.Room{
+		Name:     req.Name,
+		Password: hashedPassword,
+	}
+
+	_, err = s.db.NewInsert().Model(m).Exec(ctx)
 
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key value") {
 			return nil, true, errors.New("room already exists")
 		}
+		return nil, false, err
 	}
 
-	return m, false, err
+	return m, false, nil
 }
 
 func (s *Service) Update(ctx context.Context, req request.UpdateRoom, id request.GetByIDRoom) (*model.Room, bool, error) {
@@ -173,4 +188,30 @@ func (s *Service) ListAll(ctx context.Context, id request.GetByIDRoom) (*respons
 		DrawConditions: drawConditions,
 		Winners:        winners,
 	}, nil
+}
+
+func (s *Service) Login(ctx context.Context, req request.LoginRoom) (*model.Room, error) {
+	var room model.Room
+
+	err := s.db.NewSelect().
+		Model(&room).
+		Where("id = ?", req.ID).
+		Where("deleted_at IS NULL").
+		Scan(ctx)
+
+	if err != nil {
+		return nil, errors.New("room not found")
+	}
+
+	// เช็คว่าห้องนี้ตั้งรหัสไว้ไหม
+	if room.Password == "" || room.Password == "null" {
+		return &room, nil
+	}
+
+	// ตรวจสอบรหัสผ่าน
+	if err := bcrypt.CompareHashAndPassword([]byte(room.Password), []byte(req.Password)); err != nil {
+		return nil, errors.New("invalid password")
+	}
+
+	return &room, nil
 }

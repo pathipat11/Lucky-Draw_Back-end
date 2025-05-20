@@ -1,7 +1,13 @@
 package request
 
 type CreateRoom struct {
-	Name string `json:"name" binding:"required"`
+	Name     string `json:"name" binding:"required"`
+	Password string `json:"password"`
+}
+
+type LoginRoom struct {
+	ID       string `json:"id" binding:"required"`
+	Password string `json:"password"`
 }
 
 type UpdateRoom struct {

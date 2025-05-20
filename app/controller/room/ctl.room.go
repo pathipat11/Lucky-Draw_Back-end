@@ -76,8 +76,8 @@ func (ctl *Controller) List(ctx *gin.Context) {
 		req.Page = 1
 	}
 
-	if req.Page == 0 {
-		req.Page = 10
+	if req.Size == 0 {
+		req.Size = 10
 	}
 
 	if req.OrderBy == "" {
@@ -131,6 +131,7 @@ func (ctl *Controller) Delete(ctx *gin.Context) {
 	response.Success(ctx, nil)
 }
 
+// new function
 func (ctl *Controller) ListAll(ctx *gin.Context) {
 	ID := request.GetByIDRoom{}
 	if err := ctx.BindUri(&ID); err != nil {
@@ -147,4 +148,25 @@ func (ctl *Controller) ListAll(ctx *gin.Context) {
 	}
 
 	response.Success(ctx, data)
+}
+
+func (ctl *Controller) Login(ctx *gin.Context) {
+	var req request.LoginRoom
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		logger.Errf(err.Error())
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+
+	room, err := ctl.Service.Login(ctx, req)
+	if err != nil {
+		logger.Errf(err.Error())
+		response.Unauthorized(ctx, err.Error())
+		return
+	}
+
+	response.Success(ctx, gin.H{
+		"id":   room.ID,
+		"name": room.Name,
+	})
 }
