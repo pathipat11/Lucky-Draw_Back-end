@@ -88,7 +88,15 @@ func (s *Service) List(ctx context.Context, req request.ListRoom) ([]response.Li
 	query := s.db.NewSelect().
 		TableExpr("rooms AS r").
 		Column("r.id", "r.name", "r.password").
-		Where("r.deleted_at IS NULL")
+		Where("r.deleted_at IS NULL").
+		Where("EXISTS (?)", s.db.NewSelect().
+			Table("players").
+			Where("players.room_id = r.id::text").
+			Where("players.deleted_at IS NULL")).
+		Where("EXISTS (?)", s.db.NewSelect().
+			Table("prizes").
+			Where("prizes.room_id = r.id::text").
+			Where("prizes.deleted_at IS NULL"))
 
 	if req.Search != "" {
 		search := fmt.Sprintf("%%%s%%", strings.ToLower(req.Search))

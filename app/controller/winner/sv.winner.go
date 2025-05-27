@@ -31,7 +31,7 @@ func (s *Service) Create(ctx context.Context, req request.CreateWinner) (*respon
 	err = tx.NewSelect().
 		Model(&prize).
 		Where("id = ?", req.PrizeID).
-		Where("quantity >= ?", drawCondition.Quantity).
+		Where("quantity >= ?", 1).
 		Scan(ctx)
 	if err != nil {
 		return nil, true, errors.New("not enough prize quantity")
@@ -67,7 +67,7 @@ func (s *Service) Create(ctx context.Context, req request.CreateWinner) (*respon
 			// Set("quantity = quantity - ?", drawCondition.Quantity).
 			Set("quantity = quantity - 1").
 			Where("id = ?", req.PrizeID).
-			Where("quantity >= ?", drawCondition.Quantity).
+			Where("quantity >= ?", 1).
 			Exec(ctx)
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to update prize quantity: %w", err)
