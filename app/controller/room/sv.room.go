@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -133,12 +134,35 @@ func (s *Service) List(ctx context.Context, req request.ListRoom) ([]response.Li
 }
 
 func (s *Service) Get(ctx context.Context, id request.GetByIDRoom) (*response.ListRoom, error) {
-	m := response.ListRoom{}
+	if _, err := uuid.Parse(id.ID); err != nil {
+		return nil, errors.New("invalid room ID format")
+	}
+
+	type roomRaw struct {
+		ID       string  `bun:"id"`
+		Name     string  `bun:"name"`
+		Password *string `bun:"password"`
+	}
+
+	r := roomRaw{}
 	err := s.db.NewSelect().
-		TableExpr("rooms AS u").
-		Column("u.id", "u.name").
-		Where("id = ?", id.ID).Where("deleted_at IS NULL").Scan(ctx, &m)
-	return &m, err
+		TableExpr("rooms AS r").
+		Column("r.id", "r.name", "r.password").
+		Where("r.id = ?", id.ID).
+		Where("r.deleted_at IS NULL").
+		Scan(ctx, &r)
+
+	if err != nil {
+		return nil, err
+	}
+
+	hasPassword := r.Password != nil && *r.Password != ""
+
+	return &response.ListRoom{
+		ID:          r.ID,
+		Name:        r.Name,
+		HasPassword: hasPassword,
+	}, nil
 }
 
 func (s *Service) Delete(ctx context.Context, id request.GetByIDRoom) error {
