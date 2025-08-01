@@ -10,7 +10,6 @@ services:
     envVars:
       - key: PORT
         value: 8080
-
       # Database config (linked to Render-managed PostgreSQL)
       - key: DB_HOST
         fromDatabase:
