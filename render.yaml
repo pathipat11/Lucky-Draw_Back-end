@@ -1,48 +1,23 @@
 services:
   - type: web
     name: luckydraw-backend
-    env: docker
+    env: go
     plan: free
     region: singapore
     branch: main
-    dockerContext: .
-    dockerfilePath: ./Dockerfile
+    buildCommand: go build -o main .
+    startCommand: ./main
     envVars:
       - key: PORT
         value: 8080
-
-      # ดึงค่าจาก PostgreSQL ใน Render
-      - key: DB_HOST
-        fromDatabase:
-          name: luckydraw-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: luckydraw-db
-          property: port
-      - key: DB_DATABASE
-        fromDatabase:
-          name: luckydraw-db
-          property: database
-      - key: DB_USER
-        fromDatabase:
-          name: luckydraw-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: luckydraw-db
-          property: password
       - key: DB_SSLMODE
         value: require
-
-      # Optional: Cloudinary
       - key: CLOUDINARY_CLOUD_NAME
         value: dpxlinhly
       - key: CLOUDINARY_API_KEY
         value: 167841945287362
       - key: CLOUDINARY_API_SECRET
         value: fn2sVNzetfWkDFmn9YSMT-u2EEo
-
       - key: DEBUG
         value: "true"
 
