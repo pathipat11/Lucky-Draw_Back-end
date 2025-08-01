@@ -3,13 +3,12 @@ package config
 import (
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
 func Init() {
 	// Load .env file
-	godotenv.Load()
+	// godotenv.Load()
 
 	Database()
 	app()
