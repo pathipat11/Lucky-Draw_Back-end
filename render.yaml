@@ -14,27 +14,27 @@ services:
       # Database config (linked to Render-managed PostgreSQL)
       - key: DB_HOST
         fromDatabase:
-          name: luckydraw-db
+          name: lucky_draw_ln0c
           property: host
 
       - key: DB_PORT
         fromDatabase:
-          name: luckydraw-db
+          name: lucky_draw_ln0c
           property: port
 
       - key: DB_DATABASE
         fromDatabase:
-          name: luckydraw-db
+          name: lucky_draw_ln0c
           property: database
 
       - key: DB_USER
         fromDatabase:
-          name: luckydraw-db
+          name: lucky_draw_ln0c
           property: user
 
       - key: DB_PASSWORD
         fromDatabase:
-          name: luckydraw-db
+          name: lucky_draw_ln0c
           property: password
 
       - key: DB_SSLMODE
@@ -53,6 +53,6 @@ services:
         value: "true"
 
 databases:
-  - name: luckydraw-db
+  - name: lucky_draw_ln0c
     plan: free
     region: singapore
