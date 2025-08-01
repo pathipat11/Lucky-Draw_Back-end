@@ -33,7 +33,7 @@ services:
           name: luckydraw-db
           property: password
       - key: DB_SSLMODE
-        value: disable
+        value: require
 
       # Optional: Cloudinary
       - key: CLOUDINARY_CLOUD_NAME
