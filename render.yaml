@@ -10,6 +10,18 @@ services:
     envVars:
       - key: PORT
         value: 8080
+
+      # Database config (set จาก PostgreSQL ที่สร้างใน Render)
+      - key: DB_HOST
+        value: dpg-d266vsqli9vc73cu1uu0-a
+      - key: DB_PORT
+        value: 5432
+      - key: DB_DATABASE
+        value: lucky_draw_ln0c
+      - key: DB_USER
+        value: lucky_draw_ln0c_user
+      - key: DB_PASSWORD
+        value: 27UeL15nrQFL0rz6chQBxTvpcPr4WJbV
       - key: DB_SSLMODE
         value: require
       - key: CLOUDINARY_CLOUD_NAME
@@ -18,10 +30,7 @@ services:
         value: 167841945287362
       - key: CLOUDINARY_API_SECRET
         value: fn2sVNzetfWkDFmn9YSMT-u2EEo
+
+      # Debug mode (optional)
       - key: DEBUG
         value: "true"
-
-databases:
-  - name: luckydraw-db
-    plan: free
-    region: singapore
