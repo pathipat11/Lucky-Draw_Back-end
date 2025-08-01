@@ -17,7 +17,6 @@ type Option struct {
 	Username string
 	Password string
 	TimeZone string
-	SSLMode  string
 }
 
 func New(opt *Option) (*bun.DB, error) {
@@ -35,6 +34,6 @@ func New(opt *Option) (*bun.DB, error) {
 }
 
 func generateDSN(opt *Option) string {
-	return fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=%s TimeZone=%s",
-		opt.Host, opt.Port, opt.Database, opt.Username, opt.Password, opt.SSLMode, opt.TimeZone)
+	return fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=disable TimeZone=%s",
+		opt.Host, opt.Port, opt.Database, opt.Username, opt.Password, opt.TimeZone)
 }
