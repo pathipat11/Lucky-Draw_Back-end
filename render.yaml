@@ -10,32 +10,28 @@ services:
     envVars:
       - key: PORT
         value: 8080
-      # Database config (linked to Render-managed PostgreSQL)
+
+      # ดึงค่าจาก PostgreSQL ใน Render
       - key: DB_HOST
         fromDatabase:
           name: luckydraw-db
           property: host
-
       - key: DB_PORT
         fromDatabase:
           name: luckydraw-db
           property: port
-
       - key: DB_DATABASE
         fromDatabase:
           name: luckydraw-db
           property: database
-
       - key: DB_USER
         fromDatabase:
           name: luckydraw-db
           property: user
-
       - key: DB_PASSWORD
         fromDatabase:
           name: luckydraw-db
           property: password
-
       - key: DB_SSLMODE
         value: disable
 
@@ -47,7 +43,6 @@ services:
       - key: CLOUDINARY_API_SECRET
         value: fn2sVNzetfWkDFmn9YSMT-u2EEo
 
-      # Debug mode
       - key: DEBUG
         value: "true"
 
