@@ -19,7 +19,7 @@ func Database() {
 			Username: confString("DB_USER", "postgres"),
 			Password: confString("DB_PASSWORD", ""),
 			TimeZone: confString("TZ", "Asia/Bangkok"),
-			SSLMode:  confString("DB_SSLMODE", "disable"),
+			SSLMode:  confString("DB_SSLMODE", "require"),
 		},
 	)
 	log.Println("database connected success")
