@@ -1,6 +1,7 @@
 # 🏱 Lucky Draw - Backend
 
 A backend system for lucky draw activities and prize distribution, built with **Go + Gin**, using **Bun ORM** and **PostgreSQL**. The system supports player import, prize management, conditional drawing, and winner tracking through RESTful APIs.
+[Notion for Workflow](https://www.notion.so/INTERNSHIP-AT-GRIT-CONSULTANT-2145f06aea29802e9763f30bb2e31944?source=copy_link)
 
 ---
 
