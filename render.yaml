@@ -5,23 +5,33 @@ services:
     plan: free
     region: singapore
     branch: main
+
+    # สร้าง binary ชื่อ main
     buildCommand: go build -o main .
-    startCommand: ./main
+
+    # รันคำสั่ง http (cobra command: go run . http)
+    startCommand: ./main http
+
     envVars:
-      - key: PORT
-        value: 8080
+      # --- DB (Supabase) ---
+      # ใส่ค่าตาม DB_DSN ใน .env ของคุณ แต่ไปตั้งในหน้า Dashboard จะปลอดภัยกว่า
+      - key: DB_DSN
+        sync: false   # ไปกรอกค่าใน Render Dashboard เอง
+
+      # ถ้าจะใช้ sslmode ในโค้ดเก่าด้วยก็เซ็ตเพิ่มได้
       - key: DB_SSLMODE
         value: require
-      - key: CLOUDINARY_CLOUD_NAME
-        value: dpxlinhly
-      - key: CLOUDINARY_API_KEY
-        value: 167841945287362
-      - key: CLOUDINARY_API_SECRET
-        value: fn2sVNzetfWkDFmn9YSMT-u2EEo
+
+      # --- Timezone / Debug ---
+      - key: TZ
+        value: Asia/Bangkok
       - key: DEBUG
         value: "true"
 
-databases:
-  - name: luckydraw-db
-    plan: free
-    region: singapore
+      # --- Cloudinary (ตั้งผ่าน Dashboard ด้วยก็ได้) ---
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
