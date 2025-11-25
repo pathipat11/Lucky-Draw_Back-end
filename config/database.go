@@ -10,9 +10,12 @@ import (
 
 func Database() {
 	// Connect to database
+
+	dsn := confString("DB_DSN", "")
 	pdb.Register(
 		&db,
 		&pdb.DBOption{
+			DSN:      dsn,
 			Host:     confString("DB_HOST", "127.0.0.1"),
 			Port:     confInt64("DB_PORT", int64(5432)),
 			Database: confString("DB_DATABASE", "Database"),
